@@ -1,0 +1,320 @@
+// db.users.find()
+// // 1) Знайти всіх юзерів в кого вік менше за 20
+// db.getCollection('users').find({
+//     age: 25
+// })
+// //2) Знайти всіх юзерів в котрих хоча б один з батьків Tamara або Petro
+// db.users.find({parents:{$in:['Tamara','Petro']}})
+// //3) Знайти всіх юзерів які вивчають js
+// db.users.find({studying:{$in:['js']}})
+// //Знайти всіх юзерів котрі вивчають тільки один предмет и
+// // додати їм java
+// db.getCollection('users').find({studying:{$size:1}})
+//
+// db.users.updateMany({studying:{$size:1}},{$push:{studying:'java'}})
+//
+// //5) Знайти всіх юзерів номера будинків яких знаходяться в межах 1-20
+// db.users.find({
+//         $and: [
+//             {"address.house": {$lte:20}},
+//             {"address.house":{$gte:1}}
+//         ]
+//     })
+//
+// //6) Знайти всіх юзерів в яких назва вулиці містить пробіл
+// db.users.find({"address.street":/^.* .*$/})
+//
+// //7) Видалити всіх юзерів в котрих немає поля studying
+// db.users.find({"address.flat":{$exists:0}})
+// db.users.deleteMany({"address.flat":{$exists:0}})
+//
+// //8) Знайти всіх юзерів в котрих в ім'я когось с батьків
+// // закінчується на 'na'
+// db.users.find({parents:/na$/})
+//
+// //9) Всім юзерам котрі не вивчають python додати його
+// db.users.updateMany({studying:{$ne:'python'}},{$push:{studying:'python'}})
+// db.users.find({studying:{$ne:'python'}})
+//
+//
+// //10) Посортувати юзерів по рейтингу та по номеру квартири
+// // (що то що то, від більшого меншого)
+// db.users.find().sort({rating:-1, 'address.flat': -1})
+
+show collections
+db.students.find()
+//1) Знайти всіх дітей в яких сердня оцінка 4.2
+// db.students.aggregate([
+//     {
+//         $match:{
+//             avgScore: 4.2
+//         }
+//     }
+// ])
+db.students.find({avgScore:4.2})
+//2) Знайди всіх дітей з 1 класу
+// db.students.aggregate([
+//     {
+//         $match: {
+//             class: 1
+//         }
+//     }
+// ])
+db.students.find({class:1})
+
+//3) Знайти всіх дітей які вивчають фізику
+db.students.find({lessons:'physics'})
+
+//4) Знайти всіх дітей, батьки яких працюють в науці ( scientist )
+db.students.find({'parents.profession':'scientist'})
+
+//5) Знайти дітей, в яких середня оцінка більша за 4
+db.students.aggregate([
+    {
+        $match: {
+            avgScore:{$gt:4}
+        }
+    },
+    {
+        $sort: {avgScore: -1}
+    }
+])
+
+//6) Знайти найкращого учня
+db.students.aggregate([
+
+    {
+        $project:{
+            name: 1,
+            avgScore: 1,
+            numofLessons: {$size:'$lessons'}
+        }
+    },
+    {
+        $match:{
+            avgScore:5,
+            'numofLessons': {$gt:1}
+        }
+    }
+])
+
+//7) Знайти найгіршого учня
+db.students.aggregate([
+    {
+        $project:{
+            name:1,
+            avgScore: 1,
+        }
+    },
+    {
+        $sort:{avgScore:1}
+    },
+    {
+        $limit:1
+    }
+])
+
+//8) Знайти топ 3 учнів
+db.students.aggregate([
+    {
+        $project:{
+            name:1,
+            avgScore: 1,
+            class: 1
+        }
+    },
+    {
+        $sort:{avgScore:-1, class:-1}
+    },
+    {
+        $limit:3
+    }
+])
+//9) Знайти середній бал по школі
+db.students.aggregate([
+    {
+        $group:{
+            _id:null,
+            average: {$avg:'$avgScore'}
+        }
+    }
+])
+
+//10) Знайти середній бал дітей які вивчають математику або фізику
+db.students.aggregate([
+    {
+        $match:{
+            $or:[
+                {lessons:"mathematics"},
+                {lessons:"physics"}
+            ]
+        }
+    },
+    {
+        $group:{
+            _id: null,
+            averageScore: {$avg:'$avgScore'}
+        }
+    }
+])
+
+//11) Знайти середній бал по 2 класі
+db.students.aggregate([
+    {
+        $match:{
+            class:2
+        }
+    },
+    {
+        $group:{
+            _id: null,
+            averageScore: {$avg:'$avgScore'}
+        }
+    }
+])
+
+//12) Знайти дітей з не повною сімєю
+db.students.aggregate([
+    {
+        $match:{
+            parents:{$size:1}
+        }
+    }
+])
+
+//13) Знайти батьків які не працюють
+db.students.aggregate([
+    {
+        $unwind:'$parents'
+    },
+    {
+        $match:{
+            "parents.profession":{$exists:0}
+        }
+    }
+])
+
+//14) Вигнати дітей, які мають середній бал менше ніж 2.5
+db.students.deleteMany({
+    avgScore:{$lt:2.5}
+})
+
+
+//15) Дітям, батьки яких працюють в освіті ( teacher ) поставити 5
+db.students.updateMany({"parents.profession":'teacher'},{$set:{avgScore:5}})
+
+//16) Знайти дітей які вчаться
+// в початковій школі (до 5 класу) і вивчають фізику ( physics )
+db.students.aggregate([
+    {
+        $match:{
+            class:{$lt:5},
+            lessons:"physics"
+        }
+    }
+])
+
+//17) Знайти найуспішніший клас
+
+db.students.aggregate([
+    {
+        $group:{
+            _id: '$class',
+            averageScore: {$avg:'$avgScore'}
+        }
+    },
+    {
+        $project:{
+            _id:0,
+            averageScore:1,
+            class:'$_id'
+        }
+    },
+    {
+        $sort:{averageScore:-1}
+    },
+    {
+        $limit:1
+    }
+])
+
+//Не працюючих батьків влаштувати офіціантами (підказка: гуглимо "arrayFilters")
+//resolve
+db.students.updateMany(
+    {parents:{$exists:1}, "parents.profession":null},
+    {$set:{"parents.$[item].profession":'waiter'}},
+    {'arrayFilters':[{'item.profession':null}]}
+    )
+
+db.students.find()
+db.students.find({lessons:{$all:['german', 'physics']}})
+db.students.find({'lessons.0':'english'})
+db.students.findOne({'lessons.0':'english'}).name
+db.students.find({},{lessons:{$slice:5}})
+db.students.find({lessons:{$size:2}})
+
+db.students.updateOne(
+    {_id:ObjectId('624730ce57f35871ee1bf776')},
+    {$push:{lessons:'python'}}
+    )
+
+db.students.updateOne(
+    {_id:ObjectId('624730ce57f35871ee1bf776')},
+    {$push:{lessons:{$each:['js', 'pascal']}}}
+    )
+
+db.students.updateOne(
+    {_id:ObjectId('624730ce57f35871ee1bf776')},
+    {$pull:{lessons:["python", "java"]}}
+    )
+
+
+db.students.updateOne(
+    {_id:ObjectId('624730ce57f35871ee1bf776')},
+    {$pop: {lessons: 1}}
+    )
+db.students.updateOne(
+    {_id:ObjectId('624730ce57f35871ee1bf776')},
+    {$pop: {lessons: -1}}
+    )
+
+db.students.updateOne(
+    {_id:ObjectId('624730ce57f35871ee1bf776')},
+    {$addToSet:{lessons:'java'}}
+    )
+
+db.students.updateMany(
+    {parents:{$exists:1}, "parents.profession":null},
+    {$set:{"parents.$[item].profession":'waiter'}},
+    {'arrayFilters':[{'item.profession':null}]}
+
+    )
+
+db.students.aggregate([
+    {
+        $addFields:{
+            countOfParents: {$cond:{if:{$isArray:'$parents'}, then:{$size:'$parents'}, else:0}}
+        }
+    },
+    {
+        $match:{
+            $and:[
+                {countOfParents:{$gte:1}},
+                {countOfParents: {$lte: 1}},
+
+
+            ]
+        }
+    },
+    {
+        $project:{
+            countOfParents:0
+        }
+    }
+])
+
+
+
+
+
+
